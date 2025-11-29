@@ -1,28 +1,41 @@
-// backend/src/models/Maintenance.ts
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IMaintenance extends Document {
-  assetId: mongoose.Types.ObjectId; // References the Asset model
-  type: 'Scheduled' | 'Unscheduled' | 'Upgrade';
-  description: string;
-  dateScheduled: Date;
-  dateCompleted?: Date;
-  cost: number;
-  performedBy: string; // User ID or external vendor
+  asset: mongoose.Types.ObjectId; // Link to the Asset Model
+  issue: string;
+  description?: string;
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  cost?: number;
+  assignedTo?: string; // e.g., "Tech Support Team"
+  scheduledDate?: Date;
+  completionDate?: Date;
 }
 
-const MaintenanceSchema: Schema<IMaintenance> = new Schema(
-  {
-    assetId: { type: Schema.Types.ObjectId, ref: 'Asset', required: true },
-    type: { type: String, enum: ['Scheduled', 'Unscheduled', 'Upgrade'], required: true },
-    description: { type: String, required: true },
-    dateScheduled: { type: Date, required: true },
-    dateCompleted: { type: Date },
-    cost: { type: Number, default: 0 },
-    performedBy: { type: String, required: true },
+const MaintenanceSchema: Schema = new Schema({
+  asset: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Asset', 
+    required: true 
   },
-  { timestamps: true }
-);
+  issue: { type: String, required: true, trim: true },
+  description: { type: String, trim: true },
+  status: { 
+    type: String, 
+    enum: ['scheduled', 'in-progress', 'completed', 'cancelled'], 
+    default: 'scheduled' 
+  },
+  priority: { 
+    type: String, 
+    enum: ['low', 'medium', 'high'], 
+    default: 'medium' 
+  },
+  cost: { type: Number, default: 0 },
+  assignedTo: { type: String, default: 'Unassigned' },
+  scheduledDate: { type: Date, default: Date.now },
+  completionDate: { type: Date }
+}, {
+  timestamps: true
+});
 
-const Maintenance = mongoose.model<IMaintenance>('Maintenance', MaintenanceSchema);
-export default Maintenance;
+export default mongoose.model<IMaintenance>('Maintenance', MaintenanceSchema);
