@@ -1,175 +1,182 @@
-Fluid Asset Flow: Full-Stack Asset Management System
+# Fluid Asset Flow: Full-Stack Asset Management System
 
-🚀 Overview
+## 🚀 Overview
 
-Fluid Asset Flow is a comprehensive, full-stack Asset Management System designed to track, audit, and manage organizational assets, maintenance requests, and user roles efficiently. The application is built as a unified repository (monorepo structure) hosting both a TypeScript/Express backend API and a modern React/Vite frontend.
+**Fluid Asset Flow** is a comprehensive full-stack Asset Management System designed to track, audit, and manage organizational assets, maintenance requests, and user roles. This monorepo includes:
 
-✨ Key Features
+* **Backend:** TypeScript + Express API
+* **Frontend:** React + Vite client
+* **Database:** MongoDB (Mongoose ODM)
 
-Based on the folder structure provided, this application includes the following core functionalities:
+---
 
-Backend (API Services)
+## ✨ Key Features
 
-User Management: Secure signup and login, handling user roles and authentication (userController, User model, auth middleware).
+### Backend (API Services)
 
-Asset Lifecycle: CRUD operations for managing assets (creation, retrieval, updates, and deletion) (assetController, Asset model).
+* **User Management**
+  Secure signup/login, role-based access, authentication middleware.
 
-Request Handling: System for users to create and manage maintenance or repair requests (requestController, Request model).
+* **Asset Lifecycle Management**
+  CRUD for assets (create, read, update, delete).
 
-Audit Logging: Tracking system activity and changes (Audit model).
+* **Request Handling**
+  Maintenance/repair request creation and management.
 
-Reporting: Utilities to generate and manage various system reports (reportController, generateReport).
+* **Audit Logging**
+  Track all system changes and activities.
 
-Security: Middleware for authorization (admin, auth) and robust error handling.
+* **Reporting System**
+  Generate and manage system reports.
 
-Frontend (User Interface)
+* **Security**
+  Authorization middleware (admin, auth) and robust error handling.
 
-Dashboard: Central view for key performance indicators (KPIs) and system overview (Dashboard.tsx, KPIBox.tsx).
+---
 
-Modular Assets View: Displaying and managing assets using reusable components (Assets.tsx, AssetCard.tsx).
+### Frontend (User Interface)
 
-Theming and UI: Modern, responsive interface built with Shadcn UI components (e.g., button, card, dialog) and Tailwind CSS.
+* **Dashboard**
+  KPI overview and quick insights.
 
-Context Management: Global state management for authentication (AuthContext.tsx).
+* **Asset Management**
+  Modular UI components for asset display and control.
 
-Form Handling: Dedicated components for adding assets and creating new requests (AddAssetForm.tsx, NewRequestForm.tsx).
+* **Modern UI/UX**
+  Built with shadcn/ui + Tailwind CSS.
 
-Page Routing: Dedicated pages for all core functions: Dashboard, Assets, Requests, Maintenance, Reports, and User Auth (pages/).
+* **Auth Context**
+  Global state for user authentication.
 
-🛠️ Technology Stack
+* **Forms & Modals**
+  Add new assets and create maintenance requests.
 
-Backend
+* **Routing**
+  Pages: Dashboard, Assets, Requests, Maintenance, Reports, Login, Signup, etc.
 
-Technology
+---
 
-Description
+## 🛠️ Technology Stack
 
-Node.js / Express
+### Backend
 
-JavaScript runtime and fast, unopinionated web framework.
+| Technology         | Description                        |
+| ------------------ | ---------------------------------- |
+| Node.js / Express  | Fast JS runtime + server framework |
+| TypeScript         | Strong typing                      |
+| MongoDB / Mongoose | NoSQL database + ODM               |
+| JWT & bcryptjs     | Secure authentication and hashing  |
 
-TypeScript
+### Frontend
 
-Statically typed superset of JavaScript for robust code.
+| Technology   | Description                         |
+| ------------ | ----------------------------------- |
+| React        | UI library                          |
+| Vite         | Fast build tool                     |
+| TypeScript   | Type safety                         |
+| Tailwind CSS | Utility-first styling               |
+| Shadcn UI    | Modern UI components                |
+| bun          | Fast dependency manager (bun.lockb) |
 
-MongoDB / Mongoose
+---
 
-NoSQL database and elegant object data modeling (ODM) for Node.js.
+## ⚙️ Getting Started
 
-JWT & bcryptjs
+### Prerequisites
 
-Secure authentication using JSON Web Tokens and password hashing.
+Ensure you have:
 
-Frontend
+* Node.js v18+
+* Git
+* MongoDB (Local or Atlas)
 
-Technology
+---
 
-Description
+## 📁 Setup Instructions
 
-React
+### 1. Clone the Repository
 
-JavaScript library for building user interfaces.
-
-Vite
-
-Next-generation frontend tooling for a fast development experience.
-
-TypeScript
-
-Ensures type safety throughout the frontend application.
-
-Tailwind CSS
-
-Utility-first CSS framework for rapid styling.
-
-Shadcn UI
-
-Reusable, accessible UI components built on top of Radix UI.
-
-bun
-
-(Used for lock file bun.lockb) Fast package manager for dependency control.
-
-⚙️ Getting Started
-
-Prerequisites
-
-You must have the following installed on your machine:
-
-Node.js (v18+)
-
-Git
-
-A running MongoDB instance (Local or Atlas)
-
-Setup Instructions
-
-1. Clone the Repository
-
-First, clone the project from GitHub and navigate into the root directory:
-
+```bash
 git clone <YOUR_REPO_URL>
 cd AssetM
+```
 
+---
 
-2. Backend Setup (backend/)
+## 2. Backend Setup (`backend/`)
 
-Navigate to the backend directory and install dependencies:
-
+```bash
 cd backend
 npm install
-# OR yarn install / bun install
+```
 
+Or using yarn/bun:
 
-Environment Variables (.env)
+```bash
+yarn install
+bun install
+```
 
-Create a file named .env in the backend/ directory and add your configuration. Do not commit this file to Git.
+### Backend Environment Variables
 
-# backend/.env
+Create: `backend/.env`
 
+```env
 JWT_SECRET="YOUR_OWN_VERY_STRONG_SECRET_KEY"
 DATABASE_URL="mongodb+srv://<USER>:<PASSWORD>@<CLUSTER>/fluid_asset_flow?retryWrites=true&w=majority"
 PORT=5000
-client_origin=http://localhost:8080 
+client_origin=http://localhost:8080
+```
 
+---
 
-3. Frontend Setup (frontend/)
+## 3. Frontend Setup (`frontend/`)
 
-Navigate to the frontend directory and install dependencies:
-
+```bash
 cd ../frontend
 npm install
-# OR bun install (since you have bun.lockb)
+```
 
+Or:
 
-Environment Variables (Frontend)
+```bash
+bun install
+```
 
-Create a file named .env in the frontend/ directory to configure the API base URL.
+### Frontend Environment Variables
 
-# frontend/.env
+Create: `frontend/.env`
 
-# The base URL of your local backend server
+```env
 VITE_API_BASE_URL="http://localhost:5000/api"
+```
 
+---
 
-▶️ Running the Application
+## ▶️ Running the Application
 
-Start the Backend API
+### Start the Backend API
 
-From the backend/ directory:
+From the `backend/` directory:
 
-# Compile TypeScript and start the server with hot reload
-npm run dev 
-
-
-The backend API should be running on http://localhost:5000.
-
-Start the Frontend Client
-
-From the frontend/ directory:
-
-# Start the Vite development server
+```bash
 npm run dev
+```
 
+Backend runs at: `http://localhost:5000`
 
-The frontend application should open in your browser, typically at http://localhost:8080.
+---
+
+### Start the Frontend Client
+
+From the `frontend/` directory:
+
+```bash
+npm run dev
+```
+
+Frontend runs at: `http://localhost:8080`
+
+---
+
+Enjoy using **Fluid Asset Flow**!
