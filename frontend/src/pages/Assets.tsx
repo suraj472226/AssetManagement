@@ -46,7 +46,19 @@ export default function Assets() {
         }
 
         const data = await response.json();
-        setAssets(data);
+
+        // If logged-in user is not an Admin, show only assets assigned to them.
+        if (user && user.role !== 'ADMIN') {
+          const userName = user.name?.toString().toLowerCase() || '';
+          const userEmail = user.email?.toString().toLowerCase() || '';
+          const filteredForUser = (data as Asset[]).filter((a: any) => {
+            const owner = (a.currentOwner || '').toString().toLowerCase();
+            return owner === userName || owner === userEmail;
+          });
+          setAssets(filteredForUser);
+        } else {
+          setAssets(data);
+        }
       } catch (err: any) {
         setError(err.message || 'An unexpected error occurred.');
       } finally {
@@ -55,30 +67,30 @@ export default function Assets() {
     };
 
     fetchAssets();
-  }, [token]);
+  }, [token, user?.name, user?.email, user?.role]);
 
   // Client-side filtering logic (safe version)
-const filteredAssets = assets.filter((asset) => {
-  const name = asset.name?.toLowerCase() || '';
-  const assetId = asset.assetID?.toLowerCase() || '';
-  const owner = asset.currentOwner?.toLowerCase() || '';
-  const category = asset.category?.toLowerCase() || '';
-  const status = asset.status?.toLowerCase() || '';
+  const filteredAssets = assets.filter((asset) => {
+    const name = asset.name?.toLowerCase() || '';
+    const assetId = asset.assetID?.toLowerCase() || '';
+    const owner = asset.currentOwner?.toLowerCase() || '';
+    const category = asset.category?.toLowerCase() || '';
+    const status = asset.status?.toLowerCase() || '';
 
-  const query = searchQuery.toLowerCase();
+    const query = searchQuery.toLowerCase();
 
-  const matchesSearch =
-    name.includes(query) ||
-    assetId.includes(query) ||
-    owner.includes(query) ||
-    category.includes(query) ||
-    status.includes(query);
+    const matchesSearch =
+      name.includes(query) ||
+      assetId.includes(query) ||
+      owner.includes(query) ||
+      category.includes(query) ||
+      status.includes(query);
 
-  const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
-  const matchesCategory = categoryFilter === 'all' || category === categoryFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
+    const matchesCategory = categoryFilter === 'all' || category === categoryFilter.toLowerCase();
 
-  return matchesSearch && matchesStatus && matchesCategory;
-});
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   // Handler to update UI instantly after an asset is added
   const handleAssetAdded = (newAsset: Asset) => {
