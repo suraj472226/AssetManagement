@@ -1,3 +1,4 @@
+// frontend/src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Define the structure of the authenticated user, matching the backend response

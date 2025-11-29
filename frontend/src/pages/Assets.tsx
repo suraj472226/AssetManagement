@@ -1,3 +1,4 @@
+// frontend/src/pages/Assets.tsx
 import { useState, useEffect } from 'react';
 import { Search, Filter, Grid3x3, List, Loader2, ServerCrash } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,7 @@ export default function Assets() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
 
-  const { token } = useAuth();
+  const { token, user } = useAuth(); // <-- include user
 
   // Effect to fetch assets from the backend
   useEffect(() => {
@@ -112,20 +113,24 @@ const filteredAssets = assets.filter((asset) => {
           <h1 className="text-2xl md:text-3xl font-bold">Assets Inventory</h1>
           <p className="text-muted-foreground">Browse, search, and manage your IT assets.</p>
         </div>
-        <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary w-full sm:w-auto">Add New Asset</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Create a New Asset</DialogTitle>
-            </DialogHeader>
-            <AddAssetForm
-              onAssetAdded={handleAssetAdded}
-              onClose={() => setIsAddAssetOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+
+        {/* Only show Add Asset to admins (accept both ADMIN and admin strings) */}
+        {(user?.role === 'ADMIN' || user?.role === 'admin') && (
+          <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-primary w-full sm:w-auto">Add New Asset</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Create a New Asset</DialogTitle>
+              </DialogHeader>
+              <AddAssetForm
+                onAssetAdded={handleAssetAdded}
+                onClose={() => setIsAddAssetOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Filters and Controls */}

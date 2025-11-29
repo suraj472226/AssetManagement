@@ -45,3 +45,14 @@ export const protect = asyncHandler(async (req: AuthenticatedRequest, res: Respo
     throw new Error('Not authorized, no token provided');
   }
 });
+
+// --- NEW ADMIN MIDDLEWARE ---
+// Use this after 'protect' to ensure the user is an admin
+export const admin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'ADMIN') {
+    next();
+  } else {
+    res.status(403); // 403 Forbidden
+    throw new Error('Not authorized as an admin');
+  }
+};

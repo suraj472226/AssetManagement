@@ -1,35 +1,55 @@
+// backend/src/controllers/requestController.ts
 import { Request as ExpressRequest, Response } from 'express';
-import Request from '../models/Request';
+import RequestModel from '../models/Request';
 import Asset from '../models/Asset';
-// Define a minimal AuthRequest-like type locally to avoid importing from middleware
-type AuthRequest = ExpressRequest & { user?: { _id: string; name?: string; role?: string; department?: string } };
 
-// A simple counter for generating request IDs (in a real app, use a more robust method)
-let requestCounter = 100;
+// Interface for the Auth Request
+interface AuthRequest extends ExpressRequest {
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+    role: 'ADMIN' | 'EMPLOYEE';
+    department?: string;
+  };
+}
 
 /**
- * @desc    Get all asset requests
+ * @desc    Get requests (Admin: All, Employee: Theirs)
  * @route   GET /api/requests
  * @access  Private
  */
 export const getRequests = async (req: AuthRequest, res: Response) => {
   try {
-    // Sort by most recent first
-    const requests = await Request.find({}).sort({ createdAt: -1 });
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    let requests;
+
+    if (user.role === 'ADMIN') {
+      // 👑 Admin: See ALL requests
+      requests = await RequestModel.find({}).sort({ createdAt: -1 });
+    } else {
+      // 👤 Employee: See ONLY their own requests
+      requests = await RequestModel.find({ requestedBy: user._id }).sort({ createdAt: -1 });
+    }
+
     res.status(200).json(requests);
   } catch (error) {
+    console.error("Error fetching requests:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
 /**
- * @desc    Create a new asset request (handles both specific and generic)
+ * @desc    Create a new asset request
  * @route   POST /api/requests
  * @access  Private
  */
 export const createRequest = async (req: AuthRequest, res: Response) => {
     try {
         const { assetType, reason, specificAssetId } = req.body;
+        
         if ((!assetType && !specificAssetId) || !reason) {
             return res.status(400).json({ message: 'Request details and reason are required.' });
         }
@@ -43,17 +63,17 @@ export const createRequest = async (req: AuthRequest, res: Response) => {
             if (!asset || asset.status !== 'available') {
                 return res.status(400).json({ message: 'This asset is not available for request.' });
             }
-            finalAssetType = asset.category; // Use the category of the specific asset
+            finalAssetType = asset.category;
         }
 
-        const newRequest = new Request({
+        const newRequest = new RequestModel({
             assetType: finalAssetType,
             reason,
-            specificAsset: specificAssetId, // Will be null for generic requests
+            specificAsset: specificAssetId || null,
             requestedBy: user._id,
             employeeName: user.name,
             department: user.department || 'General',
-            requestID: `REQ-${Date.now()}`,
+            requestID: `REQ-${Date.now().toString().slice(-6)}`, // Shorter ID
             status: 'pending',
         });
 
@@ -61,14 +81,15 @@ export const createRequest = async (req: AuthRequest, res: Response) => {
         res.status(201).json(savedRequest);
 
     } catch (error) {
+        console.error("Error creating request:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 /**
- * @desc    Update a request's status (with automation)
+ * @desc    Update status (Admin Only)
  * @route   PUT /api/requests/:id/status
- * @access  Private (Admin/Manager only)
+ * @access  Private/Admin
  */
 export const updateRequestStatus = async (req: AuthRequest, res: Response) => {
     try {
@@ -79,36 +100,36 @@ export const updateRequestStatus = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'Invalid status.' });
         }
         
+        // Extra check (though middleware should handle this)
         if (req.user?.role !== 'ADMIN') {
             return res.status(403).json({ message: 'Not authorized.' });
         }
 
-        const request = await Request.findById(id).populate('requestedBy');
+        const request = await RequestModel.findById(id);
         if (!request) {
             return res.status(404).json({ message: 'Request not found.' });
         }
 
         request.status = status;
         
-        // --- AUTOMATION LOGIC ---
-        // If a request for a specific asset is approved, assign it!
+        // --- AUTOMATION: Assign asset if approved ---
         if (status === 'approved' && request.specificAsset) {
             await Asset.updateOne(
                 { _id: request.specificAsset },
                 {
                     $set: {
                         status: 'in-use',
-                        currentOwner: request.employeeName
+                        currentOwner: request.employeeName // Assign to requester
                     }
                 }
             );
         }
-        // --- END AUTOMATION ---
 
         await request.save();
         res.status(200).json(request);
 
     } catch (error) {
+        console.error("Error updating request:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 };

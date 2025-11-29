@@ -1,15 +1,58 @@
-import { LayoutDashboard, Package, FileText, Wrench, ClipboardCheck, BarChart3, Settings, X } from 'lucide-react';
+// frontend/src/components/Sidebar.tsx
+import { 
+  LayoutDashboard, 
+  Package, 
+  FileText, 
+  Wrench, 
+  ClipboardCheck, 
+  BarChart3, 
+  Settings, 
+  X,
+  LogOut 
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext'; // <--- Import Auth Hook
 
+// Define items with allowed roles
 const navItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Assets', path: '/assets', icon: Package },
-  { name: 'Requests', path: '/requests', icon: FileText },
-  { name: 'Maintenance', path: '/maintenance', icon: Wrench },
-  { name: 'Audit', path: '/audit', icon: ClipboardCheck },
-  { name: 'Reports', path: '/reports', icon: BarChart3 },
+  { 
+    name: 'Dashboard', 
+    path: '/dashboard', 
+    icon: LayoutDashboard, 
+    roles: ['ADMIN', 'EMPLOYEE'] 
+  },
+  { 
+    name: 'Assets', 
+    path: '/assets', 
+    icon: Package, 
+    roles: ['ADMIN', 'EMPLOYEE'] 
+  },
+  { 
+    name: 'Requests', 
+    path: '/requests', 
+    icon: FileText, 
+    roles: ['ADMIN', 'EMPLOYEE'] 
+  },
+  { 
+    name: 'Maintenance', 
+    path: '/maintenance', 
+    icon: Wrench, 
+    roles: ['ADMIN', 'EMPLOYEE'] 
+  },
+  { 
+    name: 'Audit', 
+    path: '/audit', 
+    icon: ClipboardCheck, 
+    roles: ['ADMIN'] // Admin Only
+  },
+  { 
+    name: 'Reports', 
+    path: '/reports', 
+    icon: BarChart3, 
+    roles: ['ADMIN'] // Admin Only
+  },
 ];
 
 interface SidebarProps {
@@ -18,6 +61,13 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+  const { user, logout } = useAuth(); // <--- Get current user and logout function
+
+  // Filter items based on user role
+  const visibleNavItems = navItems.filter(item => 
+    user?.role && item.roles.includes(user.role)
+  );
+
   return (
     <>
       {/* Mobile overlay */}
@@ -42,7 +92,9 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </div>
             <div>
               <h1 className="font-bold text-lg">Fluid Controls</h1>
-              <p className="text-xs text-muted-foreground">IT Asset Manager</p>
+              <p className="text-xs text-muted-foreground">
+                {user?.role === 'ADMIN' ? 'Admin Workspace' : 'Employee Portal'}
+              </p>
             </div>
           </div>
           <Button 
@@ -57,7 +109,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
@@ -79,22 +131,34 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </ul>
         </nav>
 
-        <div className="p-4 border-t">
-          <NavLink
-            to="/settings"
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-foreground hover:bg-muted'
-              )
-            }
+        <div className="p-4 border-t space-y-2">
+          {/* Settings - Only for Admin */}
+          {user?.role === 'ADMIN' && (
+            <NavLink
+              to="/settings"
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-foreground hover:bg-muted'
+                )
+              }
+            >
+              <Settings className="h-5 w-5" />
+              Settings
+            </NavLink>
+          )}
+
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <Settings className="h-5 w-5" />
-            Settings
-          </NavLink>
+            <LogOut className="h-5 w-5" />
+            Log Out
+          </button>
         </div>
       </aside>
     </>

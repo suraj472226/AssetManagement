@@ -9,9 +9,9 @@ export interface Asset {
   status: 'in-use' | 'available' | 'maintenance' | 'retired';
   category: 'Laptop' | 'Desktop' | 'Monitor' | 'Phone' | 'Server' | 'Other';
   department: string;
-  purchaseDate: string;
+  purchaseDate?: string;
   warrantyEnd: string;
-  cost: number;
+  cost?: number;
   currentOwner?: string;
   location: string;
 }

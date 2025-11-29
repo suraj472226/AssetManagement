@@ -1,16 +1,42 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import Maintenance from '../models/Maintenance';
 import Asset from '../models/Asset';
+import { AuthenticatedRequest } from '../middleware/auth';
 
-// @desc    Get all maintenance records
+// @desc    Get maintenance records (Admin: All, Employee: Theirs)
 // @route   GET /api/maintenance
 // @access  Private
-export const getMaintenanceRecords = asyncHandler(async (req: Request, res: Response) => {
-  // .populate('asset') fills in the Asset details (name, serial number) automatically
-  const records = await Maintenance.find()
-    .populate('asset', 'name assetID serialNumber location') 
-    .sort({ createdAt: -1 });
+export const getMaintenanceRecords = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    res.status(401);
+    throw new Error('User not found');
+  }
+
+  let records;
+
+  if (user.role === 'ADMIN') {
+    // 👑 Admin: See ALL maintenance records
+    records = await Maintenance.find()
+      .populate('asset', 'name assetID serialNumber location')
+      .sort({ createdAt: -1 });
+  } else {
+    // 👤 Employee: See only records for THEIR assigned assets
+    
+    // 1. Find all assets belonging to this user
+    const userAssets = await Asset.find({ 
+      $or: [{ currentOwner: user.email }, { currentOwner: user.name }] 
+    });
+    
+    // 2. Extract the IDs
+    const assetIds = userAssets.map(asset => asset._id);
+
+    // 3. Find maintenance records linked to those Asset IDs
+    records = await Maintenance.find({ asset: { $in: assetIds } })
+      .populate('asset', 'name assetID serialNumber')
+      .sort({ createdAt: -1 });
+  }
 
   res.json(records);
 });
@@ -18,17 +44,23 @@ export const getMaintenanceRecords = asyncHandler(async (req: Request, res: Resp
 // @desc    Create a new maintenance ticket
 // @route   POST /api/maintenance
 // @access  Private
-export const createMaintenanceRecord = asyncHandler(async (req: Request, res: Response) => {
+export const createMaintenanceRecord = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { assetId, issue, priority, assignedTo, description, scheduledDate } = req.body;
 
-  // 1. Check if asset exists
   const asset = await Asset.findById(assetId);
   if (!asset) {
     res.status(404);
     throw new Error('Asset not found');
   }
 
-  // 2. Create the maintenance record
+  // Optional: Prevent employees from scheduling maintenance for assets they don't own
+  if (req.user?.role !== 'ADMIN' && 
+      asset.currentOwner !== req.user?.email && 
+      asset.currentOwner !== req.user?.name) {
+      res.status(403);
+      throw new Error('You can only report issues for your own assets');
+  }
+
   const maintenance = await Maintenance.create({
     asset: assetId,
     issue,
@@ -39,7 +71,7 @@ export const createMaintenanceRecord = asyncHandler(async (req: Request, res: Re
     status: 'scheduled'
   });
 
-  // 3. Update the Asset status to 'maintenance' automatically
+  // Update Asset Status
   asset.status = 'maintenance';
   await asset.save();
 
@@ -48,8 +80,14 @@ export const createMaintenanceRecord = asyncHandler(async (req: Request, res: Re
 
 // @desc    Update maintenance status (e.g., to 'completed')
 // @route   PUT /api/maintenance/:id
-// @access  Private
-export const updateMaintenanceStatus = asyncHandler(async (req: Request, res: Response) => {
+// @access  Private/Admin
+export const updateMaintenanceStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  // Security: Only Admin can update status (Employees can't mark their own laptop as "fixed")
+  if (req.user?.role !== 'ADMIN') {
+    res.status(403);
+    throw new Error('Not authorized. Only Admins can update maintenance status.');
+  }
+
   const { status, cost, completionDate } = req.body;
   
   const maintenance = await Maintenance.findById(req.params.id);
@@ -65,10 +103,10 @@ export const updateMaintenanceStatus = asyncHandler(async (req: Request, res: Re
   if (status === 'completed') {
     maintenance.completionDate = completionDate || new Date();
     
-    // If maintenance is done, free up the asset
+    // Free up the asset
     const asset = await Asset.findById(maintenance.asset);
     if (asset) {
-      asset.status = 'available'; // Set back to available
+      asset.status = 'available'; // OR 'in-use' if you want to give it back to owner immediately
       await asset.save();
     }
   }

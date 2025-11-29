@@ -1,7 +1,8 @@
+// backend/src/controllers/assetController.ts
 import { Request, Response } from 'express';
-import Asset from '../models/Asset'; // Ensure your Asset model is correctly defined and imported
+import Asset from '../models/Asset';
 
-// Extend the default Request type to include the 'user' property from your auth middleware
+// Interface to type the User object on the Request
 interface AuthRequest extends Request {
   user?: {
     _id: string;
@@ -12,14 +13,30 @@ interface AuthRequest extends Request {
 }
 
 /**
- * @desc    Get all assets
+ * @desc    Get assets (Admin sees ALL, Employee sees THEIRS)
  * @route   GET /api/assets
  * @access  Private
  */
 export const getAssets = async (req: AuthRequest, res: Response) => {
   try {
-    // Fetch all assets from the database, sorting by the newest first
-    const assets = await Asset.find({}).sort({ createdAt: -1 });
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    let assets;
+
+    if (user.role === 'ADMIN') {
+      // 👑 ADMIN: Fetch EVERYTHING
+      assets = await Asset.find({}).sort({ createdAt: -1 });
+    } else {
+      // 👤 EMPLOYEE: Return ALL assets but hide sensitive fields like cost and purchaseDate
+      // This allows employees to browse the inventory while keeping sensitive info hidden.
+      assets = await Asset.find({})
+        .select('-cost -purchaseDate') // Hide sensitive fields for non-admins
+        .sort({ createdAt: -1 });
+    }
 
     if (!assets) {
       return res.status(404).json({ message: 'No assets found' });
@@ -32,26 +49,32 @@ export const getAssets = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/**
+ * @desc    Create a new asset
+ * @route   POST /api/assets
+ * @access  Private (Admin Only)
+ */
 export const createAsset = async (req: Request, res: Response) => {
   try {
     const {
       assetID,
-      serialNumber, // <-- ADDED
+      serialNumber,
       name,
       category,
       status,
       purchaseDate,
       cost,
       location,
-      department
+      department,
+      currentOwner
     } = req.body;
 
-    // --- UPDATED VALIDATION ---
-    if (!assetID || !name || !category || !status || !serialNumber) { // <-- ADDED serialNumber
+    // Validation
+    if (!assetID || !name || !category || !status || !serialNumber) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    // Check for existing assetID or serialNumber
+    // Check for duplicates
     const assetExists = await Asset.findOne({ $or: [{ assetID }, { serialNumber }] });
     if (assetExists) {
       const field = assetExists.assetID === assetID ? 'ID' : 'Serial Number';
@@ -60,7 +83,7 @@ export const createAsset = async (req: Request, res: Response) => {
 
     const asset = new Asset({
       assetID,
-      serialNumber, // <-- ADDED
+      serialNumber,
       name,
       category,
       status,
@@ -68,25 +91,31 @@ export const createAsset = async (req: Request, res: Response) => {
       cost,
       location,
       department,
+      currentOwner // Added this so you can assign directly on creation
     });
 
     const createdAsset = await asset.save();
     res.status(201).json(createdAsset);
   } catch (error: any) {
-    // This will now catch the validation error and send a proper message
     if (error.name === 'ValidationError') {
-      // Sending a more structured error message to the frontend
       const messages = Object.values(error.errors).map((val: any) => val.message);
       return res.status(400).json({ message: messages.join(', ') });
     }
-    console.error('Error creating asset:', error); // Keep this for server-side debugging
+    console.error('Error creating asset:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
 
+/**
+ * @desc    Get assets available for assignment
+ * @route   GET /api/assets/available
+ * @access  Private
+ */
 export const getAvailableAssets = async (req: Request, res: Response) => {
   try {
-    const availableAssets = await Asset.find({ status: 'available' });
+    // Only return minimal info for the dropdowns
+    const availableAssets = await Asset.find({ status: 'available' })
+      .select('assetID name serialNumber'); 
     res.status(200).json(availableAssets);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });

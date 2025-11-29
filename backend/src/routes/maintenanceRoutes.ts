@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/auth'; // Assuming you have these
+import { protect, admin } from '../middleware/auth';
 import { 
   getMaintenanceRecords, 
   createMaintenanceRecord, 
@@ -8,11 +8,13 @@ import {
 
 const router = express.Router();
 
+router.use(protect);
+
 router.route('/')
-  .get(protect, getMaintenanceRecords)
-  .post(protect, createMaintenanceRecord);
+  .get(getMaintenanceRecords)       // Filtered by controller
+  .post(createMaintenanceRecord);   // Employees can report issues
 
 router.route('/:id')
-  .put(protect, updateMaintenanceStatus);
+  .put(updateMaintenanceStatus);    // Controller checks for Admin role
 
 export default router;

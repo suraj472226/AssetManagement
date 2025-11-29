@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Asset } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 interface AssetCardProps {
   asset: Asset;
@@ -25,6 +26,9 @@ const getStatusInfo = (status?: string) => {
 
 export default function AssetCard({ asset, onClick }: AssetCardProps) {
   const statusInfo = getStatusInfo(asset.status);
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
 
   // ✅ Safe parsing for optional fields
   const warrantyDate = asset.warrantyEnd
@@ -92,7 +96,7 @@ export default function AssetCard({ asset, onClick }: AssetCardProps) {
         {/* Footer */}
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
           <Badge variant="secondary">{asset.category || 'Miscellaneous'}</Badge>
-          <span className="text-sm font-medium">{formattedCost}</span>
+          {isAdmin ? <span className="text-sm font-medium">{formattedCost}</span> : null}
         </div>
       </div>
     </Card>

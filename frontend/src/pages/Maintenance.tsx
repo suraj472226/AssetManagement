@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ScheduleMaintenanceDialog } from '@/components/ScheduleMaintenanceDialog';
+import { useAuth } from '@/context/AuthContext';
 
-// Define the interface matching backend response
+// Define Interface Locally
 interface MaintenanceRecord {
   _id: string;
   asset: {
@@ -23,15 +24,18 @@ interface MaintenanceRecord {
   createdAt: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
 export default function Maintenance() {
   const [tasks, setTasks] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { token, user } = useAuth(); // Get User Role
 
   const fetchMaintenance = async () => {
+    if (!token) return;
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/maintenance`, {
+      const response = await fetch(`${API_BASE_URL}/maintenance`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -40,7 +44,7 @@ export default function Maintenance() {
       }
     } catch (error) {
       console.error('Error fetching maintenance records', error);
-      toast({ title: 'Error', description: 'Failed to load maintenance records', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to load records', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -48,13 +52,12 @@ export default function Maintenance() {
 
   useEffect(() => {
     fetchMaintenance();
-  }, []);
+  }, [token]);
 
-  // Handler to mark task as completed
+  // Handler to mark task as completed (Admin Only)
   const handleCompleteTask = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/maintenance/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/maintenance/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -65,43 +68,49 @@ export default function Maintenance() {
       
       if(res.ok) {
         toast({ title: 'Success', description: 'Maintenance marked as completed' });
-        fetchMaintenance(); // Refresh list
+        fetchMaintenance(); 
+      } else {
+        throw new Error('Failed to update');
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Only Admins can complete tasks', variant: 'destructive' });
     }
   };
 
-  // Calculate stats dynamically
   const stats = {
     open: tasks.filter(t => t.status === 'scheduled').length,
     inProgress: tasks.filter(t => t.status === 'in-progress').length,
     completed: tasks.filter(t => t.status === 'completed').length,
   };
 
-  const priorityColors = {
-    high: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
-    medium: 'bg-orange-500 text-white hover:bg-orange-600',
-    low: 'bg-slate-500 text-white hover:bg-slate-600',
+  const priorityColors: Record<string, string> = {
+    high: 'bg-destructive text-destructive-foreground',
+    medium: 'bg-orange-500 text-white',
+    low: 'bg-slate-500 text-white',
   };
 
-  const statusColors = {
-    scheduled: 'bg-blue-100 text-blue-800 border-blue-200',
-    'in-progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    completed: 'bg-green-100 text-green-800 border-green-200',
-    cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
+  const statusColors: Record<string, string> = {
+    scheduled: 'bg-blue-100 text-blue-800',
+    'in-progress': 'bg-yellow-100 text-yellow-800',
+    completed: 'bg-green-100 text-green-800',
+    cancelled: 'bg-gray-100 text-gray-800',
   };
 
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <div className="p-4 md:p-6 space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Maintenance</h1>
-          <p className="text-muted-foreground">Track and manage asset repairs</p>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {isAdmin ? 'Maintenance Queue' : 'My Reported Issues'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isAdmin ? 'Manage repair tickets and assign technicians' : 'Track the repair status of your assets'}
+          </p>
         </div>
-        {/* Pass the refresh function to the dialog */}
         <ScheduleMaintenanceDialog onSuccess={fetchMaintenance} />
       </div>
 
@@ -145,7 +154,9 @@ export default function Maintenance() {
 
       <div className="space-y-4">
         {tasks.length === 0 ? (
-           <div className="text-center py-10 text-muted-foreground">No maintenance records found.</div>
+           <div className="text-center py-10 text-muted-foreground">
+             {isAdmin ? "No maintenance tickets found." : "You haven't reported any issues yet."}
+           </div>
         ) : (
           tasks.map((task) => (
             <Card key={task._id} className="p-6 transition-all hover:shadow-md">
@@ -154,7 +165,7 @@ export default function Maintenance() {
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="text-lg font-semibold">{task.asset?.name || 'Unknown Asset'}</h3>
                     <Badge variant="outline">{task.asset?.assetID}</Badge>
-                    <Badge className={priorityColors[task.priority]}>
+                    <Badge className={priorityColors[task.priority] || 'bg-slate-500'}>
                       {task.priority.toUpperCase()}
                     </Badge>
                   </div>
@@ -178,7 +189,8 @@ export default function Maintenance() {
                     {task.status.replace('-', ' ').toUpperCase()}
                   </Badge>
                   
-                  {task.status !== 'completed' && (
+                  {/* Only Admin can mark as Done */}
+                  {isAdmin && task.status !== 'completed' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
