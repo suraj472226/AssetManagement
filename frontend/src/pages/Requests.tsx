@@ -21,7 +21,7 @@ interface LiveRequest {
 }
 
 // 2. Safe API URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://assetmanagement-8r1x.onrender.com/api';
 
 export default function Requests() {
   const [requests, setRequests] = useState<LiveRequest[]>([]);

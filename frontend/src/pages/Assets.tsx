@@ -10,7 +10,7 @@ import AddAssetForm from '@/components/AddAssetForm';
 import { useAuth } from '@/context/AuthContext';
 import { Asset } from '@/data/mockData';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://assetmanagement-8r1x.onrender.com/api';
 
 export default function Assets() {
   // State for data, loading, and errors

@@ -24,7 +24,7 @@ interface MaintenanceRecord {
   createdAt: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://assetmanagement-8r1x.onrender.com/api';
 
 export default function Maintenance() {
   const [tasks, setTasks] = useState<MaintenanceRecord[]>([]);

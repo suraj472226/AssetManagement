@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { mockKPIs } from '@/data/mockData'; // Kept for the static "Asset Growth Trend" chart
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://assetmanagement-8r1x.onrender.com/api';
 
 // Define the shape of the data we expect from the backend
 // NOTE: We've replaced assetsByDepartment with assetsByCategory
