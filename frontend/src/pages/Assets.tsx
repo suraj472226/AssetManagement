@@ -127,7 +127,7 @@ export default function Assets() {
         </div>
 
         {/* Only show Add Asset to admins (accept both ADMIN and admin strings) */}
-        {(user?.role === 'ADMIN' || user?.role === 'admin') && (
+        {(user?.role?.toUpperCase() === 'ADMIN') && (
           <Dialog open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary w-full sm:w-auto">Add New Asset</Button>

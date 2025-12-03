@@ -5,6 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { connectDB } from './config/db';
 import { notFound, errorHandler } from './middleware/errorHandler';
+import auditRoutes from './routes/auditRoutes';
 
 // Import Routes
 import userRoutes from './routes/userRoutes';
@@ -43,6 +44,7 @@ app.use('/api/assets', assetRoutes); // <-- Asset routes are now active at /api/
 app.use('/api/requests', requestRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/audit', auditRoutes);
 
 // --- Custom Error Handling Middleware (MUST be last) ---
 app.use(notFound);
