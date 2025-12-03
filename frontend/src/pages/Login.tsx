@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // Using relative path
 import { useToast } from '@/hooks/use-toast';
 
 export default function Login() {
@@ -29,8 +29,25 @@ export default function Login() {
           title: 'Welcome to Fluid Controls',
           description: 'Login successful',
         });
-        // Navigate only on SUCCESS
-        navigate('/dashboard'); 
+        
+        // --- REDIRECT LOGIC ---
+        // We check localStorage because state updates might not be instant
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          
+          // If Admin -> Dashboard
+          // If Employee -> Assets
+          if (userData.role === 'ADMIN') {
+            navigate('/dashboard');
+          } else {
+            navigate('/assets'); 
+          }
+        } else {
+          // Fallback
+          navigate('/assets');
+        }
+        
       } else {
          toast({
           title: 'Login Failed',
@@ -99,9 +116,9 @@ export default function Login() {
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...</>
             ) : (
-                'Sign In'
+              'Sign In'
             )}
           </Button>
           

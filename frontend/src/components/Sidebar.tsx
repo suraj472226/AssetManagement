@@ -1,4 +1,3 @@
-// frontend/src/components/Sidebar.tsx
 import { 
   LayoutDashboard, 
   Package, 
@@ -13,7 +12,7 @@ import {
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext'; // <--- Import Auth Hook
+import { useAuth } from '../context/AuthContext'; // Using relative path to avoid build errors
 
 // Define items with allowed roles
 const navItems = [
@@ -21,7 +20,7 @@ const navItems = [
     name: 'Dashboard', 
     path: '/dashboard', 
     icon: LayoutDashboard, 
-    roles: ['ADMIN', 'EMPLOYEE'] 
+    roles: ['ADMIN'] // <--- CHANGED: Removed 'EMPLOYEE'
   },
   { 
     name: 'Assets', 
@@ -61,7 +60,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
-  const { user, logout } = useAuth(); // <--- Get current user and logout function
+  const { user, logout } = useAuth(); 
 
   // Filter items based on user role
   const visibleNavItems = navItems.filter(item => 
