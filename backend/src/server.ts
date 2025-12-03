@@ -52,6 +52,8 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Fluid Asset Flow API is running...');
 });
 
+app.get('/favicon.ico', (req, res) => res.status(204));
+
 app.use('/api/users', userRoutes);
 app.use('/api/assets', assetRoutes); // <-- Asset routes are now active at /api/assets
 app.use('/api/requests', requestRoutes);
