@@ -20,13 +20,24 @@ const PORT = process.env.PORT || 5000;
 
 // --- Middleware ---
 // CORS Configuration to allow connections from your frontend
-const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:8080', 'http://127.0.0.1:5173']
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:8080', 'http://127.0.0.1:5173', 'https://asset-management-5hp8-6hd1yd4ck-suraj472226s-projects.vercel.app']
   .filter((o): o is string => typeof o === 'string'); // remove undefined values and narrow type to string[]
 
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin); // Log the blocked origin to debug
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json()); // Body parser for JSON

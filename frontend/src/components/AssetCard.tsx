@@ -28,7 +28,7 @@ export default function AssetCard({ asset, onClick }: AssetCardProps) {
   const statusInfo = getStatusInfo(asset.status);
 
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
+  const isAdmin = user?.role === 'ADMIN';
 
   // ✅ Safe parsing for optional fields
   const warrantyDate = asset.warrantyEnd
