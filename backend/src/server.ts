@@ -20,7 +20,10 @@ const PORT = process.env.PORT || 5000;
 
 // --- Middleware ---
 // CORS Configuration to allow connections from your frontend
-const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:8080', 'http://127.0.0.1:5173', 'https://asset-management-5hp8-6hd1yd4ck-suraj472226s-projects.vercel.app']
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:8080', 'http://127.0.0.1:5173', 'https://suraj-asset-management.vercel.app',
+  'https://asset-management-5hp8-git-main-suraj472226s-projects.vercel.app',
+  'https://asset-management-5hp8-husxg25fh-suraj472226s-projects.vercel.app',
+  'https://asset-management-5hp8-6hd1yd4ck-suraj472226s-projects.vercel.app']
   .filter((o): o is string => typeof o === 'string'); // remove undefined values and narrow type to string[]
 
 app.use(cors({
