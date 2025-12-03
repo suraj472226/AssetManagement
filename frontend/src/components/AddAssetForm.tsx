@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Asset } from '@/data/mockData';
 
-const API_BASE_URL = 'https://assetmanagement-8r1x.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://assetmanagement-8r1x.onrender.com/api';
 
 interface AddAssetFormProps {
   onAssetAdded: (newAsset: Asset) => void;

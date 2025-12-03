@@ -25,7 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'https://assetmanagement-8r1x.onrender.com/api/users'; 
+const API_BASE_URL =import.meta.env.VITE_API_BASE_URL + '/users' || 'https://assetmanagement-8r1x.onrender.com/api/users'; 
 // ---------------------
 
 // Utility to safely retrieve data from storage
