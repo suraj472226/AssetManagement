@@ -1,10 +1,18 @@
 import { Router } from 'express';
-import * as controller from '../controllers/reportController';
+import { getDashboardSummary, getReportData, generateReport } from '../controllers/reportController';
 import { protect } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/generate', controller.generateReport);
-router.get('/dashboard-summary', controller.getDashboardSummary);
+router.use(protect);
+
+// Route for the Reports Page (This fixes the 404)
+router.get('/', getReportData);
+
+// Route for the Dashboard Widgets
+router.get('/dashboard-summary', getDashboardSummary);
+
+// Route for specific generation (optional)
+router.get('/generate', generateReport);
 
 export default router;

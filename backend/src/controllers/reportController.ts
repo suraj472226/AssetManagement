@@ -1,77 +1,51 @@
 import { Request, Response } from 'express';
 import Asset from '../models/Asset';
+import Maintenance from '../models/Maintenance';
 
 /**
- * @desc    Get aggregated data for the main dashboard
+ * @desc    Get aggregated data for the main dashboard (Home Page)
  * @route   GET /api/reports/dashboard-summary
- * @access  Private
  */
 export const getDashboardSummary = async (req: Request, res: Response) => {
   try {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-    // Using an aggregation pipeline to calculate all stats in a single query
     const summary = await Asset.aggregate([
       {
         $facet: {
-          // 1. Calculate Total Assets
-          totalAssets: [
-            { $count: 'count' }
-          ],
-          // 2. Group assets by status for the pie chart
+          totalAssets: [{ $count: 'count' }],
           assetsByStatus: [
             { $group: { _id: '$status', count: { $sum: 1 } } },
             { $project: { name: '$_id', value: '$count', _id: 0 } }
           ],
-          // 3. Group assets by department for the bar chart
-          // --- MODIFIED THIS SECTION ---
-          // We now group by the 'category' field instead of 'department'.
           assetsByCategory: [
             { $group: { _id: '$category', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $project: { name: '$_id', count: '$count', _id: 0 } }
           ],
-          // --- END MODIFICATION ---
-          // 4. Calculate total cost of all assets
-          totalValue: [
-            { $group: { _id: null, total: { $sum: '$cost' } } }
-          ],
-          // 5. Count assets that are 'in-use'
-          inUseCount: [
-            { $match: { status: 'in-use' } },
-            { $count: 'count' }
-          ],
-          // 6. Count warranties expiring in the next 30 days
+          totalValue: [{ $group: { _id: null, total: { $sum: '$cost' } } }],
+          inUseCount: [{ $match: { status: 'in-use' } }, { $count: 'count' }],
           upcomingExpiries: [
-            {
-              $match: {
-                warrantyEnd: {
-                  $lte: thirtyDaysFromNow,
-                  $gte: new Date()
-                }
-              }
-            },
+            { $match: { warrantyEnd: { $lte: thirtyDaysFromNow, $gte: new Date() } } },
             { $count: 'count' }
           ]
         }
       }
     ]);
 
-    // Reformat the aggregated data into a clean object
-    const totalAssetsCount = summary[0].totalAssets[0]?.count || 0;
-    const inUseAssetsCount = summary[0].inUseCount[0]?.count || 0;
+    const data = summary[0];
+    const totalAssetsCount = data.totalAssets[0]?.count || 0;
+    const inUseAssetsCount = data.inUseCount[0]?.count || 0;
 
-    const dashboardData = {
+    res.status(200).json({
       totalAssets: totalAssetsCount,
       utilizationRate: totalAssetsCount > 0 ? parseFloat(((inUseAssetsCount / totalAssetsCount) * 100).toFixed(1)) : 0,
-      upcomingExpiries: summary[0].upcomingExpiries[0]?.count || 0,
-      totalValue: summary[0].totalValue[0]?.total || 0,
-      assetsByStatus: summary[0].assetsByStatus,
-      assetsByCategory: summary[0].assetsByCategory,
-    };
-
-    res.status(200).json(dashboardData);
+      upcomingExpiries: data.upcomingExpiries[0]?.count || 0,
+      totalValue: data.totalValue[0]?.total || 0,
+      assetsByStatus: data.assetsByStatus || [],
+      assetsByCategory: data.assetsByCategory || [],
+    });
 
   } catch (error) {
     console.error('Error fetching dashboard summary:', error);
@@ -79,6 +53,36 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
   }
 };
 
-export function generateReport(arg0: string, generateReport: any) {
-    throw new Error('Function not implemented.');
-}
+/**
+ * @desc    Get raw data for Reports Page (CSV Export & Analytics)
+ * @route   GET /api/reports
+ */
+export const getReportData = async (req: Request, res: Response) => {
+  try {
+    // 1. Fetch raw data for CSV export
+    const assets = await Asset.find({}).sort({ createdAt: -1 });
+    const maintenance = await Maintenance.find({}).sort({ createdAt: -1 });
+
+    // 2. Calculate Stats for Report Cards
+    const totalValue = assets.reduce((sum, asset) => sum + (asset.cost || 0), 0);
+    const availableCount = assets.filter(a => a.status === 'available').length;
+    const maintenanceCount = maintenance.filter(m => m.status !== 'completed').length;
+
+    res.status(200).json({
+      stats: {
+        totalAssets: assets.length,
+        totalValue,
+        maintenanceCount
+      },
+      rawAssets: assets,       // Needed for "Export Assets CSV"
+      rawMaintenance: maintenance // Needed for "Export Maintenance CSV"
+    });
+  } catch (error) {
+    console.error('Error fetching report data:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export const generateReport = async (req: Request, res: Response) => {
+    res.status(501).json({ message: 'Not implemented' });
+};
