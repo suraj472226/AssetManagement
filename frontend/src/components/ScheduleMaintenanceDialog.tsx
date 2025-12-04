@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Sparkles } from 'lucide-react'; // Make sure to import Sparkles
 
 const formSchema = z.object({
   assetId: z.string().min(1, 'Please select an asset'),
@@ -33,13 +33,16 @@ interface Asset {
 }
 
 interface ScheduleMaintenanceDialogProps {
-  onSuccess: () => void; // Callback to refresh the list after adding
+  onSuccess: () => void;
 }
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://assetmanagement-8r1x.onrender.com/api';
 
 export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDialogProps) {
   const [open, setOpen] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // State for AI loading
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -59,18 +62,10 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
         setIsLoadingAssets(true);
         try {
           const token = localStorage.getItem('token');
-          const baseUrl = import.meta.env.VITE_API_BASE_URL;
-          
-          if (!baseUrl) {
-            console.error("VITE_API_BASE_URL is not defined in .env");
-            return;
-          }
-
-          const res = await fetch(`${baseUrl}/assets`, {
+          const res = await fetch(`${API_BASE_URL}/assets`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          // Check if response is valid JSON
           const contentType = res.headers.get("content-type");
           if (contentType && contentType.indexOf("application/json") !== -1) {
             const data = await res.json();
@@ -93,10 +88,51 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
     }
   }, [open, toast]);
 
+  // --- AI ANALYSIS FUNCTION ---
+  const handleAIAnalyze = async () => {
+    const description = form.getValues('description');
+    if (!description || description.length < 5) {
+      toast({ title: 'AI Info', description: 'Please describe the issue first.', variant: 'default' });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/ai/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ description })
+      });
+
+      if (!res.ok) throw new Error('AI Analysis failed');
+
+      const data = await res.json();
+      
+      // Auto-fill form based on AI result
+      form.setValue('priority', data.priority);
+      
+      toast({ 
+        title: '✨ AI Analysis Complete', 
+        description: `Priority set to ${data.priority.toUpperCase()}. Suggestion: ${data.suggestion}`,
+        className: "bg-purple-50 border-purple-200 text-purple-900"
+      });
+
+    } catch (error) {
+      toast({ title: 'AI Error', description: 'Could not analyze issue.', variant: 'destructive' });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  // ---------------------------
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/maintenance`, {
+      const response = await fetch(`${API_BASE_URL}/maintenance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +146,7 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
       toast({ title: 'Success', description: 'Maintenance scheduled successfully' });
       setOpen(false);
       form.reset();
-      onSuccess(); // Refresh the parent list
+      onSuccess();
     } catch (error) {
       toast({ title: 'Error', description: 'Could not schedule maintenance', variant: 'destructive' });
     }
@@ -127,7 +163,7 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
         <DialogHeader>
           <DialogTitle>Schedule Maintenance</DialogTitle>
           <DialogDescription>
-            Create a new maintenance ticket for an asset. Fill in the details below.
+            Create a new maintenance ticket. Use AI to auto-assess priority.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -178,6 +214,36 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Describe the issue in detail..." {...field} />
+                  </FormControl>
+                  
+                  {/* AI Button */}
+                  <div className="mt-2 flex justify-end">
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={handleAIAnalyze}
+                      disabled={isAnalyzing}
+                      className="text-xs gap-2 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200"
+                    >
+                      {isAnalyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      {isAnalyzing ? "Analyzing..." : "Auto-Detect Priority with AI"}
+                    </Button>
+                  </div>
+                  
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -185,7 +251,7 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
@@ -216,20 +282,6 @@ export function ScheduleMaintenanceDialog({ onSuccess }: ScheduleMaintenanceDial
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Detailed description of the issue..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

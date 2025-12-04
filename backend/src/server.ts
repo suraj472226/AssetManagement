@@ -12,6 +12,7 @@ import assetRoutes from './routes/assetRoutes';
 import requestRoutes from './routes/requestRoutes'; // placeholder
 import reportRoutes from './routes/reportRoutes'; // placeholder
 import maintenanceRoutes from './routes/maintenanceRoutes';
+import aiRoutes from './routes/aiRoutes';
 
 // --- Initialization ---
 connectDB(); // Connect to MongoDB Atlas
@@ -59,6 +60,7 @@ app.use('/api/assets', assetRoutes); // <-- Asset routes are now active at /api/
 app.use('/api/requests', requestRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/ai', aiRoutes);
 
 // --- Custom Error Handling Middleware (MUST be last) ---
 app.use(notFound);
